@@ -58,6 +58,7 @@ def main():
             count = 0
             GPIO.output((14,15,18), zero)
 
+    # Case "down" button pressed
     def down(channel):
         global count
         count -= 1
@@ -79,10 +80,11 @@ def main():
         elif (count == 0):
             GPIO.output((14,15,18), zero)
 
-
+    # Setup interupts for up and down buttons
     GPIO.add_event_detect(23, GPIO.FALLING, callback=up, bouncetime=130)
     GPIO.add_event_detect(24, GPIO.FALLING, callback=down, bouncetime=130)
 
+    # Allow time for implementation
     time.sleep(200)
 
 # Only run the functions if
@@ -93,5 +95,5 @@ if __name__ == "__main__":
            main()
     except KeyboardInterrupt:
         print("Exiting gracefully")
-        # Turn off your GPIOs here
+        # Turn off GPIOs
         GPIO.cleanup()
