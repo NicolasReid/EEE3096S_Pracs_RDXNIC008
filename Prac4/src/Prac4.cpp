@@ -80,7 +80,7 @@ void *playThread(void *threadargs){
 		continue;
 
         //Write the buffer out to SPI
-        wiringPiSPIDataRW (SPI_CHAN, buffer[bufferReading][buffer_loaction] , 2);
+        wiringPiSPIDataRW (SPI_CHAN, buffer[bufferReading][buffer_location] , 2);
         //Do some maths to check if you need to toggle buffers
         buffer_location++;
         if(buffer_location >= BUFFER_SIZE) {
