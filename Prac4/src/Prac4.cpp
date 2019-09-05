@@ -47,7 +47,7 @@ int setup_gpio(void){
     //setting up the buttons
 	//TODO
     //setting up the SPI interface
-    //TODO
+    wiringPiSPISetup(SPI_CHAN, SPI_SPEED);
     return 0;
 }
 
@@ -141,9 +141,9 @@ int main(){
             continue;
         }
         //Set config bits for first 8 bit packet and OR with upper bits
-        buffer[bufferWriting][counter][0] = ; //TODO
+        // TODO buffer[bufferWriting][counter][0] = ; //TODO
         //Set next 8 bit packet
-        buffer[bufferWriting][counter][1] = ; //TODO
+        // TODO buffer[bufferWriting][counter][1] = ; //TODO
 
         counter++;
         if(counter >= BUFFER_SIZE+1){

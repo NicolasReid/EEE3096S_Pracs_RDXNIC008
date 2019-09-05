@@ -2,7 +2,7 @@
  * Prac4.cpp
  *
  * Written for EEE3096S 2019 by Keegan Crankshaw
- * 
+ *
  * This file is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -29,13 +29,14 @@
 #include <iostream>
 
 //Define buttons
-#define PLAY_BUTTON // Write your value here
-#define STOP_BUTTON // Write your value here
+#define PLAY_BUTTON 22
+#define STOP_BUTTON 23
+//Buffer stuff
 #define BUFFER_SIZE 1000
 
 //SPI Settings
-#define SPI_CHAN // Write your value here
-#define SPI_SPEED // Write your value here
+#define SPI_CHAN 0
+#define SPI_SPEED 409600
 
 //Filename
 #define FILENAME "src/sound_16k_8bit.raw"
