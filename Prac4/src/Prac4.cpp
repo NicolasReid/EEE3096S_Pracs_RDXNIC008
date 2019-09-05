@@ -31,15 +31,16 @@ bool threadReady = false; //using this to finish writing the first column at the
 // Configure your interrupts here.
 // Don't forget to use debouncing.
 void play_pause_isr(void){
-    //Write your logis here
+    playing = !playing;
 }
 
 void stop_isr(void){
-    // Write your logic here
+    stopped = !stopped;
+    printf("Stop Playing\n");
 }
 
 /*
- * Setup Function. Called once 
+ * Setup Function. Called once
  */
 int setup_gpio(void){
     //Set up wiring Pi
@@ -55,7 +56,7 @@ int setup_gpio(void){
     wiringPiISR(STOP_BUTTON, INT_EDGE_FALLING, &stop_isr);
     //setting up the SPI interface
     wiringPiSPISetup(SPI_CHAN, SPI_SPEED);
-    printf("Set up compleated\n");
+    printf("Set up compleated :)\n");
     return 0;
 }
 
@@ -71,15 +72,15 @@ void *playThread(void *threadargs){
     // If the thread isn't ready, don't do anything
     while(!threadReady)
         continue;
-    
+
     //You need to only be playing if the stopped flag is false
     while(!stopped){
         //Code to suspend playing if paused
-		//TODO
-        
+	if(!playing) // do nothing
+		continue;
+
         //Write the buffer out to SPI
-        //TODO
-		
+        wiringPiSPIDataRW (SPI_CHAN, buffer[bufferReading][buffer_loaction] , 2);
         //Do some maths to check if you need to toggle buffers
         buffer_location++;
         if(buffer_location >= BUFFER_SIZE) {
@@ -87,7 +88,6 @@ void *playThread(void *threadargs){
             bufferReading = !bufferReading; // switches column one it finishes one column
         }
     }
-    
     pthread_exit(NULL);
 }
 
@@ -103,7 +103,7 @@ int main(){
      */ 
     
     //Write your logic here
-	pthread_attr_t tattr;
+    pthread_attr_t tattr;
     pthread_t thread_id;
     int newprio = 99;
     sched_param param;
@@ -149,9 +149,9 @@ int main(){
             continue;
         }
         //Set config bits for first 8 bit packet and OR with upper bits
-        // TODO buffer[bufferWriting][counter][0] = ; //TODO
+        //buffer[bufferWriting][counter][0] = ; //TODO
         //Set next 8 bit packet
-        // TODO buffer[bufferWriting][counter][1] = ; //TODO
+        //buffer[bufferWriting][counter][1] = ; //TODO
 
         counter++;
         if(counter >= BUFFER_SIZE+1){
@@ -170,7 +170,7 @@ int main(){
     printf("Complete reading");
 
     //Join and exit the playthread
-	pthread_join(thread_id, NULL);
+    pthread_join(thread_id, NULL);
     pthread_exit(NULL);
 
     return 0;
