@@ -45,9 +45,17 @@ int setup_gpio(void){
     //Set up wiring Pi
     wiringPiSetup();
     //setting up the buttons
-	//TODO
+    pinMode(PLAY_BUTTON, INPUT);
+    pinMode(STOP_BUTTON, INPUT);
+    //Add pull up resistors
+    pullUpDnControl(PLAY_BUTTON, PUD_UP);
+    pullUpDnControl(STOP_BUTTON, PUD_UP);
+    //Attach interrupts to Buttons
+    wiringPiISR(PLAY_BUTTON, INT_EDGE_FALLING, &play_pause_isr);
+    wiringPiISR(STOP_BUTTON, INT_EDGE_FALLING, &stop_isr);
     //setting up the SPI interface
     wiringPiSPISetup(SPI_CHAN, SPI_SPEED);
+    printf("Set up compleated\n");
     return 0;
 }
 
