@@ -26,17 +26,36 @@ unsigned char buffer[2][BUFFER_SIZE][2];
 int buffer_location = 0;
 bool bufferReading = 0; //using this to switch between column 0 and 1 - the first column
 bool threadReady = false; //using this to finish writing the first column at the start of the song, before the column is played
-
+long lastInterruptTime = 0; //Used for button debounce
 
 // Configure your interrupts here.
 // Don't forget to use debouncing.
 void play_pause_isr(void){
-    playing = !playing;
+    // Debounce
+    long interruptTime = millis();
+    if (interruptTime - lastInterruptTime>200){
+        // Indicate play/pause status
+        playing = !playing;
+        if(playing){
+            printf("Playing\n");
+        }else{
+            printf("Paused\n");
+       }
+    }
+    lastInterruptTime = interruptTime;
 }
 
 void stop_isr(void){
-    stopped = !stopped;
-    printf("Stop Playing\n");
+    // Debounce
+    long interruptTime = millis();
+    if (interruptTime - lastInterruptTime > 200){
+        // Indicate stop status
+        stopped = !stopped;
+        printf("Stop Playing\n");
+    }
+    lastInterruptTime = interruptTime;
+    // Exit program
+    exit(0);
 }
 
 /*
@@ -96,38 +115,38 @@ int main(){
 	if(setup_gpio()==-1){
         return 0;
     }
-    
+
     /* Initialize thread with parameters
      * Set the play thread to have a 99 priority
      * Read https://docs.oracle.com/cd/E19455-01/806-5257/attrib-16/index.html
-     */ 
-    
+     */
+
     //Write your logic here
     pthread_attr_t tattr;
     pthread_t thread_id;
     int newprio = 99;
     sched_param param;
-    
+
     pthread_attr_init (&tattr);
     pthread_attr_getschedparam (&tattr, &param); /* safe to get existing scheduling param */
     param.sched_priority = newprio; /* set the priority; others are unchanged */
     pthread_attr_setschedparam (&tattr, &param); /* setting the new scheduling param */
     pthread_create(&thread_id, &tattr, playThread, (void *)1); /* with new priority specified *
-    
+
     /*
      * Read from the file, character by character
      * You need to perform two operations for each character read from the file
      * You will require bit shifting
-     * 
+     *
      * buffer[bufferWriting][counter][0] needs to be set with the control bits
      * as well as the first few bits of audio
-     * 
+     *
      * buffer[bufferWriting][counter][1] needs to be set with the last audio bits
-     * 
+     *
      * Don't forget to check if you have pause set or not when writing to the buffer
-     * 
+     *
      */
-     
+
     // Open the file
     char ch;
     FILE *filePointer;
@@ -148,10 +167,42 @@ int main(){
             //waits in here after it has written to a side, and the thread is still reading from the other side
             continue;
         }
-        //Set config bits for first 8 bit packet and OR with upper bits
-        //buffer[bufferWriting][counter][0] = ; //TODO
+        //printf(sizeof(buffer[bufferWriting][counter][0])/sizeof(buffer[bufferWriting][counter][0][0]));
+
+        int x = buffer[bufferWriting][counter][0];
+        if(x)
+            printf("\n\n\n");
+        while (x) {
+            if (x & 1)
+                printf("1");
+            else
+                printf("0");
+            x >>= 1;
+        }
+
+        //Set config bits for first 8-bit packet and OR with upper bits
+        char first8 = (ch >> 6); //
+        first8 |= 0b01110000;
+        buffer[bufferWriting][counter][0] = first8;
+
+        printf("%c\n", ch);
+
+        int n = buffer[bufferWriting][counter][0];
+        //if(n)
+          //  printf("\n\n\n");
+        while (n) {
+            if (n & 1)
+                printf("1");
+            else
+                printf("0");
+            n >>= 1;
+        }
+
         //Set next 8 bit packet
-        //buffer[bufferWriting][counter][1] = ; //TODO
+        char second8 = ch;
+        second8 &= 0b00111111;
+        second8 <<= 2;
+        buffer[bufferWriting][counter][1] = second8; //TODO
 
         counter++;
         if(counter >= BUFFER_SIZE+1){

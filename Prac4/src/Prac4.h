@@ -32,7 +32,7 @@
 #define PLAY_BUTTON 22
 #define STOP_BUTTON 23
 //Buffer stuff
-#define BUFFER_SIZE 1000
+#define BUFFER_SIZE 2000
 
 //SPI Settings
 #define SPI_CHAN 0
