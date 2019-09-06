@@ -32,11 +32,11 @@
 #define PLAY_BUTTON 22
 #define STOP_BUTTON 23
 //Buffer stuff
-#define BUFFER_SIZE 2000
+#define BUFFER_SIZE 1000
 
 //SPI Settings
 #define SPI_CHAN 0
-#define SPI_SPEED 409600
+#define SPI_SPEED 204800
 
 //Filename
 #define FILENAME "src/sound_16k_8bit.raw"
