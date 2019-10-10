@@ -40,7 +40,7 @@ threads = []
 
 # For temperatuer
 Tc  = 0.01 #Volts/(degrees Celcius)
-V_0 = 0.5  #Volts
+V_0 = 0.55  #Volts
 
 Vout = 0
 #----------------------------functions----------------------------------
@@ -60,13 +60,14 @@ def init():
     mainThread = threading.Thread(target = mainThreadFunction)
     DACThread = threading.Thread(target = DACThreadFunction)
     threads.append(mainThread)
-    threads.append(dataThread)
     threads.append(DACThread)
+    threads.append(dataThread)
 
 def mainThreadFunction():
     global Vout
     while(1):
        print('|{:^10}|{:^11}|   {:1.1f}V   |  {:2.0f}°C  |  {:^4.0f} |  {:1.2f}V  |   {}   |'.format("00:00:00", Data[0], Data[1], Data[2],Data[3],Vout," "))
+       print("+----------+-----------+----------+--------+-------+---------+-------+")
        time.sleep(delay)
 
 def dataThreadFunction():
@@ -112,6 +113,7 @@ def getADCData():
     return;
 
 def main():
+    global Vout
     print("+====================================================================+")
     print("|                              Starting                              |")
     print("+----------+-----------+----------+--------+-------+---------+-------+")
@@ -119,6 +121,7 @@ def main():
     print("+==========+===========+==========+========+=======+=========+=======+")
     init()
     getADCData()
+    Vout = Data[1]/1023 * Data[3]
     # start threads
     for thread in threads:
         thread.start()
@@ -131,6 +134,8 @@ def cleanUp():
         GPIO.cleanup()
     if IsSPI:
         acd.close()
+    for thread in threads():
+        thread.join()
 
 if __name__ == "__main__":
     try:
