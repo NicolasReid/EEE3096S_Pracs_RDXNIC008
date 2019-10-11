@@ -96,12 +96,12 @@ def DACThreadFunction():
         time.sleep(1)
 
 def buttonThreadFunction():
-    global delay
     # Register Virtual Pins
     @blynk.VIRTUAL_WRITE(1)
     def my_write_handler(value):
-        delay = value[0]
-        print('Current delay value: {}'.format(delay))
+        global delay
+        delay = int(value[0])
+        #print('Current delay value: {}'.format(delay))
 
     while(1):
         blynk.run()
