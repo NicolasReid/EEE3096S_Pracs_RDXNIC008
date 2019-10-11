@@ -13,13 +13,17 @@ import spidev            # for SPI
 import RPi.GPIO as GPIO  # for GPIO
 import time              # for time --> remove when rtc is working
 import threading         # for threads
+import datetime          # for timing
+import BlynkLib          # for blynk app
 
 #---------------------------Global Variables----------------------------
 
 IsGPIO = False
 IsSPI = False
-
 delay = 5
+blynk = BlynkLib.Blynk('QaSs_5koxPXKY8STWWwvX3Eqsdsi-1U3') # Initialize Blynk
+
+
 
 # For ADC SPI
 firstByte = int('00000001',2)
@@ -43,6 +47,7 @@ Tc  = 0.01 #Volts/(degrees Celcius)
 V_0 = 0.55  #Volts
 
 Vout = 0
+
 #----------------------------functions----------------------------------
 def init():
 
@@ -59,14 +64,19 @@ def init():
     dataThread = threading.Thread(target = dataThreadFunction)
     mainThread = threading.Thread(target = mainThreadFunction)
     DACThread = threading.Thread(target = DACThreadFunction)
+    buttonThread = threading.Thread(target = buttonThreadFunction)
     threads.append(mainThread)
     threads.append(DACThread)
     threads.append(dataThread)
+    threads.append(buttonThread)
+
 
 def mainThreadFunction():
     global Vout
+    global delay
     while(1):
-       print('|{:^10}|{:^11}|   {:1.1f}V   |  {:2.0f}°C  |  {:^4.0f} |  {:1.2f}V  |   {}   |'.format("00:00:00", Data[0], Data[1], Data[2],Data[3],Vout," "))
+       now = datetime.datetime.now()
+       print('|{:^10}|{:^11}|   {:1.1f}V   |  {:2.0f}°C  |  {:^4.0f} |  {:1.2f}V  |   {}   |'.format(now.strftime("%H:%M:%S"), Data[0], Data[1], Data[2],Data[3],Vout," "))
        print("+----------+-----------+----------+--------+-------+---------+-------+")
        time.sleep(delay)
 
@@ -84,6 +94,19 @@ def DACThreadFunction():
     while (1):
         Vout = Data[1]/1023 * Data[3]
         time.sleep(1)
+
+def buttonThreadFunction():
+    global delay
+    # Register Virtual Pins
+    @blynk.VIRTUAL_WRITE(1)
+    def my_write_handler(value):
+        delay = value[0]
+        print('Current delay value: {}'.format(delay))
+
+    while(1):
+        blynk.run()
+
+
 
 def convertToVoltage (ADC_Output ,Vref= 3.3):
     v = ((ADC_Output[1] & int('00000011',2)) << 8) + ADC_Output[2]
@@ -122,6 +145,8 @@ def main():
     init()
     getADCData()
     Vout = Data[1]/1023 * Data[3]
+    # Start Blynk
+    #blynk.run()
     # start threads
     for thread in threads:
         thread.start()
