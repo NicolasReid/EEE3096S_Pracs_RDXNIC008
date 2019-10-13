@@ -22,6 +22,7 @@ IsGPIO = False
 IsSPI = False
 delay = 5
 logging = True
+Alarm = False
 blynk = BlynkLib.Blynk('QaSs_5koxPXKY8STWWwvX3Eqsdsi-1U3') # Initialize Blynk
 
 # For ADC SPI
@@ -32,6 +33,15 @@ tempByte = int('10100000',2)
 lastByte = int('00000000',2)
 adc = spidev.SpiDev()
 
+# For DAC
+commandBits = int('0111',2) << 12
+Vref = 3.3
+dac = spidev.SpiDev()
+upperLimit = 2.65
+lowerLimit = 0.65
+AlarmString = " "
+lastAlarmTime = 0 
+alarmBuffer = 3 #min
 # For time
 sysStart = datetime.datetime.now()
 Data = ["00:00:00",0,0,0]
@@ -60,7 +70,8 @@ def init():
     #GPIO.output(chipSelectPins, 1) # set chip select pins hight because communication starts on a logic low.
 
     # init SPI    adc = spidev.SpiDev()
-    adc.open(0,0)
+    adc.open(0,1)
+    dac.open(0,0)
     IsSPI = True
 
     # Set up threads
@@ -81,7 +92,7 @@ def mainThreadFunction():
     while(1):
         if(logging):
             now = datetime.datetime.now()
-            print('|{:^10}|{:^11}|   {:1.1f}V   |  {:2.0f}°C  |  {:^4.0f} |  {:1.2f}V  |   {}   |'.format(now.strftime("%H:%M:%S"), str(now-sysStart)[:-7], Data[1], Data[2],Data[3],Vout," "))
+            print('|{:^10}|{:^11}|   {:1.1f}V   |  {:2.0f}°C  |  {:^4.0f} |  {:1.2f}V  |   {}   |'.format(now.strftime("%H:%M:%S"), str(now-sysStart)[:-7], Data[1], Data[2],Data[3],Vout,AlarmString))
             print("+----------+-----------+----------+--------+-------+---------+-------+")
             wait = time.time()
             while((time.time()-wait) < delay):
@@ -95,8 +106,23 @@ def dataThreadFunction():
 
 def DACThreadFunction():
     global Vout
+    global Vref
+    global lastAlarmTime
+    global AlarmString
     while (1):
         Vout = Data[1]/1023 * Data[3]
+        if(((Vout < lowerLimit) or (Vout > upperLimit)) and ((lastAlarmTime - time.time()) > (60*alarmBuffer) or not lastAlarmTime)):
+            print("Alarm")
+            Alarm = True;
+            AlarmString = "*"
+            lastAlarmTime = time.time()
+
+        Dn = int((Vout*2**10)/Vref)
+        Dn = Dn << 2
+        Dn = commandBits | Dn
+        upperByte = Dn >> 8
+        lowerByte = Dn & int('0000000011111111',2)
+        dac.xfer([upperByte,lowerByte],10000,16)
         time.sleep(1)
 
 def buttonThreadFunction():
