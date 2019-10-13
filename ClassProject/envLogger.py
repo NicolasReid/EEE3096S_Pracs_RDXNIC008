@@ -53,6 +53,8 @@ def init():
 
     # init Gpio
     GPIO.setmode(GPIO.BCM)
+    GPIO.setup(14, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+    GPIO.setup(15, GPIO.IN, pull_up_down=GPIO.PUD_UP)
     # outputs
     #GPIO.setup(chipSelectPins, GPIO.OUT)
     #GPIO.output(chipSelectPins, 1) # set chip select pins hight because communication starts on a logic low.
@@ -101,7 +103,6 @@ def buttonThreadFunction():
     def my_write_handler(value):
         global delay
         delay = int(value[0])
-        #print('Current delay value: {}'.format(delay))
 
     while(1):
         blynk.run()
@@ -135,6 +136,22 @@ def getADCData():
     Data[2] = getTemperature()
     return;
 
+def decrement(channel):
+    global delay
+    switcher = {
+        2: 1,
+        5: 2,
+    }
+    delay = switcher.get(delay, delay)
+
+def increment(channel):
+    global delay
+    switcher = {
+        1: 2,
+        2: 5,
+    }
+    delay = switcher.get(delay, delay)
+
 def main():
     global Vout
     print("+====================================================================+")
@@ -145,9 +162,12 @@ def main():
     init()
     getADCData()
     Vout = Data[1]/1023 * Data[3]
-    # Start Blynk
-    #blynk.run()
-    # start threads
+
+    # Setup interupts for up and down buttons
+    GPIO.add_event_detect(14, GPIO.FALLING, callback=increment, bouncetime=130)
+    GPIO.add_event_detect(15, GPIO.FALLING, callback=decrement, bouncetime=130)
+
+    # Start threads
     for thread in threads:
         thread.start()
 
