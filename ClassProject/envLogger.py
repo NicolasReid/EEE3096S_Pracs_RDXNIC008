@@ -21,9 +21,8 @@ import BlynkLib          # for blynk app
 IsGPIO = False
 IsSPI = False
 delay = 5
+logging = True
 blynk = BlynkLib.Blynk('QaSs_5koxPXKY8STWWwvX3Eqsdsi-1U3') # Initialize Blynk
-
-
 
 # For ADC SPI
 firstByte = int('00000001',2)
@@ -34,16 +33,14 @@ lastByte = int('00000000',2)
 adc = spidev.SpiDev()
 
 # For time
-sysHours = 0
-sysMin = 0
-sysSec = 0
+sysStart = datetime.datetime.now()
 Data = ["00:00:00",0,0,0]
 
 # For threads
 threads = []
 
 # For temperatuer
-Tc  = 0.01 #Volts/(degrees Celcius)
+Tc  = 0.01  #Volts/(degrees Celcius)
 V_0 = 0.55  #Volts
 
 Vout = 0
@@ -55,6 +52,9 @@ def init():
     GPIO.setmode(GPIO.BCM)
     GPIO.setup(14, GPIO.IN, pull_up_down=GPIO.PUD_UP)
     GPIO.setup(15, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+    GPIO.setup(18, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+    GPIO.setup(23, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+
     # outputs
     #GPIO.setup(chipSelectPins, GPIO.OUT)
     #GPIO.output(chipSelectPins, 1) # set chip select pins hight because communication starts on a logic low.
@@ -62,6 +62,7 @@ def init():
     # init SPI    adc = spidev.SpiDev()
     adc.open(0,0)
     IsSPI = True
+
     # Set up threads
     dataThread = threading.Thread(target = dataThreadFunction)
     mainThread = threading.Thread(target = mainThreadFunction)
@@ -76,19 +77,20 @@ def init():
 def mainThreadFunction():
     global Vout
     global delay
+    global logging
     while(1):
-       now = datetime.datetime.now()
-       print('|{:^10}|{:^11}|   {:1.1f}V   |  {:2.0f}°C  |  {:^4.0f} |  {:1.2f}V  |   {}   |'.format(now.strftime("%H:%M:%S"), Data[0], Data[1], Data[2],Data[3],Vout," "))
-       print("+----------+-----------+----------+--------+-------+---------+-------+")
-       time.sleep(delay)
+        if(logging):
+            now = datetime.datetime.now()
+            print('|{:^10}|{:^11}|   {:1.1f}V   |  {:2.0f}°C  |  {:^4.0f} |  {:1.2f}V  |   {}   |'.format(now.strftime("%H:%M:%S"), str(now-sysStart)[:-7], Data[1], Data[2],Data[3],Vout," "))
+            print("+----------+-----------+----------+--------+-------+---------+-------+")
+            wait = time.time()
+            while((time.time()-wait) < delay):
+                pass
 
 def dataThreadFunction():
     global sysSec
     while(1):
         getADCData()
-        sysSec += 1
-        sysTime = '{:02d}:{:02d}:{:02d}'.format(sysHours,sysMin,int(sysSec))
-        Data[0] = sysTime
         time.sleep(1)
 
 def DACThreadFunction():
@@ -106,8 +108,6 @@ def buttonThreadFunction():
 
     while(1):
         blynk.run()
-
-
 
 def convertToVoltage (ADC_Output ,Vref= 3.3):
     v = ((ADC_Output[1] & int('00000011',2)) << 8) + ADC_Output[2]
@@ -152,6 +152,14 @@ def increment(channel):
     }
     delay = switcher.get(delay, delay)
 
+def resetSysTime(channel):
+    global sysStart
+    sysStart = datetime.datetime.now()
+
+def stopStart(channel):
+    global logging
+    logging = not logging
+
 def main():
     global Vout
     print("+====================================================================+")
@@ -163,9 +171,12 @@ def main():
     getADCData()
     Vout = Data[1]/1023 * Data[3]
 
-    # Setup interupts for up and down buttons
-    GPIO.add_event_detect(14, GPIO.FALLING, callback=increment, bouncetime=130)
-    GPIO.add_event_detect(15, GPIO.FALLING, callback=decrement, bouncetime=130)
+    # Setup interupts for HW buttons
+    GPIO.add_event_detect(15, GPIO.FALLING, callback=increment, bouncetime=130)
+    GPIO.add_event_detect(18, GPIO.FALLING, callback=decrement, bouncetime=130)
+    GPIO.add_event_detect(14, GPIO.FALLING, callback=resetSysTime, bouncetime=130)
+    GPIO.add_event_detect(23, GPIO.FALLING, callback=stopStart, bouncetime=130)
+
 
     # Start threads
     for thread in threads:
