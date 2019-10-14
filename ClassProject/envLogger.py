@@ -149,6 +149,7 @@ def alarmThreadFunction():
     duty = 50
     while(1):
         if(alarm):
+            blynk.notify("Warning! Check humidity and lighting.")
             pwm[0].start(duty)
             time.sleep(0.5)
             if (duty == 70):
@@ -162,12 +163,12 @@ def blynkThreadFunction():
     # Temperature
     @blynk.VIRTUAL_READ(0)
     def my_read_handler():
-        blynk.virtual_write(0, Data[2])
+        blynk.virtual_write(0, round(Data[2], 1))
 
     # Humidity Guage
     @blynk.VIRTUAL_READ(1)
     def my_read_handler():
-        hum = (Data[1]/3.3)*100
+        hum = round((Data[1]/3.3)*100, 1)
         blynk.virtual_write(1, hum)
 
     # Light Bar
@@ -175,8 +176,17 @@ def blynkThreadFunction():
     def my_read_handler():
         blynk.virtual_write(2, Data[3])
 
+    # Alarm LED
+    @blynk.VIRTUAL_READ(3)
+    def my_read_handler():
+        if(alarm):
+            blynk.virtual_write(3, 1)
 
     while(1):
+        if(alarm):
+            blynk.virtual_write(3, 255)
+        else:
+            blynk.virtual_write(3, 0)
         blynk.run()
 
 def convertToVoltage (ADC_Output ,Vref= 3.3):

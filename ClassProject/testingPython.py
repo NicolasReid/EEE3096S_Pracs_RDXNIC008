@@ -18,6 +18,13 @@ def my_read_handler():
     # blynk.virtual_write(1, 50)
     blynk.virtual_write(0, 99)
 
+@blynk.ON(3)
+def my_read_handler():
+    blynk.on(3, 225)
+    #WidgetLED led1(V3)
+    #blynk.led1.on()
+
+blynk.notify("Alarm!")
 
 while True:
     blynk.run()
