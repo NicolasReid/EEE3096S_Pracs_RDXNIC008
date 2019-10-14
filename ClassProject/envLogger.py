@@ -14,7 +14,7 @@ import RPi.GPIO as GPIO  # for GPIO
 import time              # for time --> remove when rtc is working
 import threading         # for threads
 import datetime          # for timing
-#import BlynkLib          # for blynk app
+import BlynkLib          # for blynk app
 
 #---------------------------Global Variables----------------------------
 
@@ -23,7 +23,7 @@ IsSPI = False
 delay = 5
 logging = True
 alarm = False
-#blynk = BlynkLib.Blynk('QaSs_5koxPXKY8STWWwvX3Eqsdsi-1U3') # Initialize Blynk
+blynk = BlynkLib.Blynk('QaSs_5koxPXKY8STWWwvX3Eqsdsi-1U3') # Initialize Blynk
 
 # For ADC SPI
 firstByte = int('00000001',2)
@@ -63,8 +63,8 @@ def init():
     GPIO.setwarnings(False)
     #Inputs
     GPIO.setup(14, GPIO.IN, pull_up_down=GPIO.PUD_UP) # reset system time
-    GPIO.setup(15, GPIO.IN, pull_up_down=GPIO.PUD_UP) # decrement
-    GPIO.setup(18, GPIO.IN, pull_up_down=GPIO.PUD_UP) # increment
+    GPIO.setup(15, GPIO.IN, pull_up_down=GPIO.PUD_UP) # increment
+    GPIO.setup(18, GPIO.IN, pull_up_down=GPIO.PUD_UP) # decrement
     GPIO.setup(23, GPIO.IN, pull_up_down=GPIO.PUD_UP) # start/stop
     GPIO.setup(24, GPIO.IN, pull_up_down=GPIO.PUD_UP) # deactivate alarm
 
@@ -89,12 +89,12 @@ def init():
     mainThread = threading.Thread(target = mainThreadFunction)
     DACThread = threading.Thread(target = DACThreadFunction)
     alarmThread = threading.Thread(target = alarmThreadFunction)
-    #buttonThread = threading.Thread(target = buttonThreadFunction)
+    blynkThread = threading.Thread(target = blynkThreadFunction)
     threads.append(mainThread)
     threads.append(DACThread)
     threads.append(dataThread)
     threads.append(alarmThread)
-    #threads.append(buttonThread)
+    threads.append(blynkThread)
 
 
 def mainThreadFunction():
@@ -158,15 +158,26 @@ def alarmThreadFunction():
         pwm[0].stop()
         time.sleep(0.01)
 
-#def buttonThreadFunction():
-    # Register Virtual Pins
- #   @blynk.VIRTUAL_WRITE(1)
-  #  def my_write_handler(value):
-    #    global delay
-   #     delay = int(value[0])
+def blynkThreadFunction():
+    # Temperature
+    @blynk.VIRTUAL_READ(0)
+    def my_read_handler():
+        blynk.virtual_write(0, Data[2])
 
-   # while(1):
-    #    blynk.run()
+    # Humidity Guage
+    @blynk.VIRTUAL_READ(1)
+    def my_read_handler():
+        hum = (Data[1]/3.3)*100
+        blynk.virtual_write(1, hum)
+
+    # Light Bar
+    @blynk.VIRTUAL_READ(2)
+    def my_read_handler():
+        blynk.virtual_write(2, Data[3])
+
+
+    while(1):
+        blynk.run()
 
 def convertToVoltage (ADC_Output ,Vref= 3.3):
     v = ((ADC_Output[1] & int('00000011',2)) << 8) + ADC_Output[2]
@@ -226,11 +237,11 @@ def stopStart(channel):
     logging = not logging
     if logging:
         #print("+----------+-----------+----------+--------+-------+---------+-------+")
-        print("|                              Starting                              |")
+        print("|                               Start                                |")
         print("+----------+-----------+----------+--------+-------+---------+-------+")
     else:
         #print("+----------+-----------+----------+--------+-------+---------+-------+")
-        print("|                              Stopping                              |")
+        print("|                              Stopped                               |")
         print("+----------+-----------+----------+--------+-------+---------+-------+")
 
 def alarmDeactivate(channel):
